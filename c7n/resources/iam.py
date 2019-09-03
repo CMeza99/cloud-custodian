@@ -513,11 +513,19 @@ class IamRoleUsage(Filter):
         perms.extend(['ecs:DescribeClusters', 'ecs:DescribeServices'])
         return perms
 
-    def service_role_usage(self):
+    def service_role_usage(self, res=None):
         results = set()
-        results.update(self.scan_lambda_roles())
-        results.update(self.scan_ecs_roles())
-        results.update(self.collect_profile_roles())
+
+        if res is None:
+            res = [ 'lambda', 'ecs', 'ec2' ]
+
+        if 'lambda' in res:
+            results.update(self.scan_lambda_roles())
+        if 'ecs' in res:
+            results.update(self.scan_ecs_roles())
+        if 'ec2' in res:
+            results.update(self.collect_profile_roles())
+
         return results
 
     def instance_profile_usage(self):
@@ -600,11 +608,17 @@ class UsedIamRole(IamRoleUsage):
             filters:
               - type: used
                 state: true
+                resource_types:
+                  - ec2
+                  - ecs
+                  - lambda
     """
 
     schema = type_schema(
         'used',
-        state={'type': 'boolean'})
+        state={'type': 'boolean'},
+        resource_types={'type': 'array'}
+        )
 
     def process(self, resources, event=None):
         roles = self.service_role_usage()
